@@ -76,7 +76,8 @@ class OpticalFlow:
             if ch == 27:
                 break
 
-        self.cam.release()
+        # Exclude tracks where the feature stayed in the same position for the entire duration
+        self.tracks = [t for t in self.tracks if len(t) > 1]
 
     def anorm2(self, a):
         return (a*a).sum(-1)
