@@ -5,6 +5,7 @@ import pickle
 from random import randrange
 import math
 from numpy import linalg as LA
+from camera_intrinsics import CameraIntrinsics
 
 klt_tracker = OpticalFlow('data/Assignment_MV_02_video.mp4', 'data/camera_intrinsics.json')
 ##klt_tracker.run()
@@ -35,10 +36,27 @@ with open("data/tracks.txt", "rb") as fp:
 ##
 ##    n = len(x_coords)
 ##    return norm / (n * math.sqrt(2))
-##
+
 points = [t[0] for t in tracks]
 points_prime = [t[-1] for t in tracks]
-##
+
+F = cv2.findFundamentalMat(np.array(points, dtype=np.float32), np.array(points_prime, dtype=np.float32), cv2.FM_RANSAC)
+
+intrinsics = CameraIntrinsics()
+intrinsics.load("data/camera_intrinsics.json")
+
+print(intrinsics.K)
+
+F = F[0]
+E = intrinsics.K.transpose() @ F @ intrinsics.K
+
+U, V, D = LA.svd(E)
+
+print(D)
+
+print(LA.det(U))
+print(LA.det(D.transpose()))
+
 ##x_coords = [t[0][0] for t in tracks]
 ##y_coords = [t[0][1] for t in tracks]
 ##
@@ -83,8 +101,8 @@ points_prime = [t[-1] for t in tracks]
 ##            rand_index = randrange(len(tracks))
 ##
 ##            if rand_index not in indices:
-##                coord = T @ np.array([[x_coords[rand_index]], [y_coords[rand_index]], [1]])
-##                coord_prime = T_prime @ np.array([[x_prime_coords[rand_index]], [y_prime_coords[rand_index]], [1]])
+##                coord = T @ np.append(np.array(points[rand_index]), 1).reshape((3, 1))
+##                coord_prime = T_prime @ np.append(np.array(points_prime[rand_index]), 1).reshape((3, 1))
 ##
 ##                x = coord[0].item() / coord[2].item()
 ##                y = coord[1].item() / coord[2].item()
@@ -126,8 +144,8 @@ points_prime = [t[-1] for t in tracks]
 ##
 ##    for i in range(len(tracks)):
 ##        if i not in indices:
-##            x_prime = np.array([[x_prime_coords[i]], [y_prime_coords[i]], [1]])
-##            x = np.array([[x_coords[i]], [y_coords[i]], [1]])
+##            x_prime = np.append(np.array(points_prime[i]), 1).reshape((3, 1))
+##            x = np.append(np.array(points[i]), 1).reshape((3, 1))
 ##
 ##            g_i = x_prime.transpose() @ F @ x
 ##
@@ -195,9 +213,9 @@ while True:
 
 d, u = LA.eig(F.transpose() @ F)
 
-least_ev_index = np.argmin(d)
+least_sv_index = np.argmin(d)
 
-epipole1 = u[:, least_ev_index]
+epipole1 = u[:, least_sv_index]
 epipole1 = epipole1 / epipole1[2]
 
 d, u = LA.eig(F @ F.transpose())
@@ -207,9 +225,9 @@ least_ev_index = np.argmin(d)
 epipole2 = u[:, least_ev_index]
 epipole2 = epipole2 / epipole2[2]
 
-print('First epipole:')
+print('First frame epipole:')
 print(epipole1)
-print('Second epipole:')
+print('Last frame epipole:')
 print(epipole2)
     
 klt_tracker.cam.release()

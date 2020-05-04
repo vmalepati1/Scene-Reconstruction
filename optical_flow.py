@@ -19,14 +19,6 @@ class OpticalFlow:
         # Try to track features throughout all frames
         self.track_len = int(self.cam.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frame_idx = 0
-        self.load_camera_intrinsics(camera_intrinsics_path)
-
-    def load_camera_intrinsics(self, path):
-        with open(path) as f:
-            data = json.load(f)
-
-        self.K = np.array(data['camera_matrix'])
-        self.dist_coeff = np.array(data['dist_coeff'])
 
     def run(self):
         while True:

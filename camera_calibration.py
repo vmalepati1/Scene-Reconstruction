@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 import json
+from camera_intrinsics import CameraIntrinsics
 
 # termination criteria
 criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
@@ -71,11 +72,8 @@ print('Translation vectors:')
 print(tvecs)
 
 # Save camera intrinsics to a file
-data = {"camera_matrix": mtx.tolist(), "dist_coeff": dist.tolist()}
-fname = "data/camera_intrinsics.json"
-
-with open(fname, "w") as f:
-    json.dump(data, f)
+intrinsics = CameraIntrinsics(mtx, dist)
+intrinsics.save("data/camera_intrinsics.json")
 
 mean_error = 0
 for i in range(len(objpoints)):
