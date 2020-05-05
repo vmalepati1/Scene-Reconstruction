@@ -18,6 +18,8 @@ class FundamentalMatrixCalculation:
         # Calculate correspondences
 
         # List of homogeneous vectors
+        # Determines correpondence vectors (Part A)
+        
         correspondence_vectors = []
 
         for track in tracks:
@@ -36,6 +38,7 @@ class FundamentalMatrixCalculation:
             n = len(x_coords)
             return norm / (n * math.sqrt(2))
 
+        # Determine homographies (Part B)
         points = [t[0] for t in tracks]
         points_prime = [t[-1] for t in tracks]
 
@@ -69,6 +72,7 @@ class FundamentalMatrixCalculation:
 
         selection_results = []
 
+        # Repeat procedure 10000 times (Part G_
         print('Running iterations')
         iterations = 10000
 
@@ -77,6 +81,7 @@ class FundamentalMatrixCalculation:
             indices = []
             A = []
 
+            # Construct A matrix for DLT algorithm (Part C)
             for i in range(8):
                 found = False
                 
@@ -98,13 +103,14 @@ class FundamentalMatrixCalculation:
                         indices.append(rand_index)
 
                         found = True
-
+                        
             A = np.array(A)
 
             U, S, VH = LA.svd(A)
 
             least_sv_index = np.argmin(S)
 
+            # Calculate fundamental matrix using DLT algorithm (Part D)
             F_hat = VH.transpose()[:, least_sv_index]
             F_hat = np.reshape(F_hat, (3, 3))
 
@@ -114,11 +120,12 @@ class FundamentalMatrixCalculation:
 
             F_hat = U @ np.diag(S) @ VH
 
-            # Determine singularity
+            # Make sure F_hat is singular
             tolerance = 1e-13
             if LA.det(F_hat) > tolerance:
                 print('Fundamental matrix is not singular')
 
+            # Apploy normalization homographies to determine final fundamental matrix (Part D)
             F = T_prime.transpose() @ F_hat @ T
 
             num_outliers = 0
@@ -127,6 +134,7 @@ class FundamentalMatrixCalculation:
 
             for i in range(len(tracks)):
                 if i not in indices:
+                    # For remaining correspondences, calculate the g_i its variance (Part E)
                     x_prime = np.append(np.array(points_prime[i]), 1).reshape((3, 1))
                     x = np.append(np.array(points[i]), 1).reshape((3, 1))
 
@@ -141,9 +149,11 @@ class FundamentalMatrixCalculation:
                     # o = x_prime_T * F * C_xx * F_T * x_prime + x_T * F_T * C_xx * F * x
                     variance = x_prime.transpose() @ F @ C_xx @ F.transpose() @ x_prime + \
                                 x.transpose() @ F.transpose() @ C_xx @ F @ x
-                                
+
+                    # Calculate test statistic (Part F)
                     T_i = pow(g_i, 2) / variance
 
+                    # Use an outlier threshold and sum up test statistics over all inliers
                     if T_i > 6.635:
                         num_outliers += 1
                         outlier_indices.append(i)
@@ -153,7 +163,8 @@ class FundamentalMatrixCalculation:
             selection_results.append([F, num_outliers, inlier_sum, outlier_indices])
 
         print('Finished fundamental matrix iterations')
-
+        
+        # Select the fundamental matrix with fewest outliers and least inlier test statistic (Part G)
         selection_results = sorted(selection_results, key = lambda x: (x[1], x[2]))
 
         print('Fundamental matrix:')
@@ -184,6 +195,7 @@ class FundamentalMatrixCalculation:
 
                 outlier_correspondances = [correspondances[i] for i in outlier_indices]
 
+                # Show inliers in green and outliers in red (Part H)
                 cv2.polylines(vis, [np.int32(tr) for tr in correspondances], False, (0, 255, 0))
                 # Overlay outliers in red
                 cv2.polylines(vis, [np.int32(tr) for tr in outlier_correspondances], False, (0, 0, 255))
@@ -197,6 +209,7 @@ class FundamentalMatrixCalculation:
 
         least_sv_index = np.argmin(d)
 
+        # Calculate epipole locations (Part H)
         epipole1 = u[:, least_sv_index]
         epipole1 = epipole1 / epipole1[2]
 

@@ -35,6 +35,7 @@ class OpticalFlow:
                 if len(self.tracks) > 0:
                     img0, img1 = self.prev_gray, frame_gray
                     p0 = np.float32([tr[-1] for tr in self.tracks]).reshape(-1, 1, 2)
+                    # Use KLT algorithm to track features across image sequence (Part D)
                     p1, st, err = cv2.calcOpticalFlowPyrLK(img0, img1, p0, None, **self.lk_params)
                     p0r, st, err = cv2.calcOpticalFlowPyrLK(img1, img0, p1, None, **self.lk_params)
                     d = abs(p0-p0r).reshape(-1, 2).max(-1)
@@ -57,9 +58,11 @@ class OpticalFlow:
                     mask[:] = 255
                     for x, y in [np.int32(tr[-1]) for tr in self.tracks]:
                         cv2.circle(mask, (x, y), 5, 0, -1)
+                    # Identify good features to track in first frame (Part C)
                     p = cv2.goodFeaturesToTrack(frame_gray, mask = mask, **self.feature_params)
                     if p is not None:
                         for x, y in np.float32(p).reshape(-1, 2):
+                            # Feature point coordinates are in sub-pixel accuracy
                             self.tracks.append([(x, y)])
 
 

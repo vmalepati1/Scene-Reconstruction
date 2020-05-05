@@ -19,9 +19,11 @@ class EssentialMatrixAnd3D:
 
         for i in range(len(points)):
             if i not in outliers:
+                # Calculate for each inlier directions m and m_prime (Part C)
                 m = LA.inv(intrinsics.K) @ np.append(np.array(points[i]), 1).reshape((3, 1))
                 m_prime = LA.inv(intrinsics.K) @ np.append(np.array(points_prime[i]), 1).reshape((3, 1))
 
+                # Calculate unknown distances l and u by solving linear equation (Part C)
                 A = np.array([[(m.transpose() @ m).item(), (-m.transpose() @ R @ m_prime).item()],
                               [(m.transpose() @ R @ m_prime).item(), (-m_prime.transpose() @ m_prime).item()]])
 
@@ -32,7 +34,7 @@ class EssentialMatrixAnd3D:
                 l = x[0]
                 u = x[1]
 
-                # Discard points which are behind either of the frames
+                # Discard points which are behind either of the frames (Part C)
                 if l > 0 and u > 0:
                     projected_points.append(l * m)
 
@@ -62,6 +64,7 @@ class EssentialMatrixAnd3D:
                 break
 
     def run(self):
+        # Use the fundamental matrix F and calibration matrix K to calculate E (Part A)
         E = self.intrinsics.K.transpose() @ self.F @ self.intrinsics.K
 
         U, S, V_T = LA.svd(E)
@@ -81,6 +84,7 @@ class EssentialMatrixAnd3D:
                       [1, 0, 0],
                       [0, 0, 1]])
 
+        # Determine four potential combinations of R and t (Part B)
         R_1 = U @ W.transpose() @ V_T
         R_2 = U @ W @ V_T
         T = U[:, 2]
@@ -89,7 +93,7 @@ class EssentialMatrixAnd3D:
         # Given that camera was traveling at 50 km/hour and video was taken at 30fps
         actual_z_meters = (self.klt_tracker.track_len * 50 * 1000) / (30 * 3600)
 
-        # Rescale z
+        # Rescale z (Part B)
         z_scale_factor = actual_z_meters / T[2]
         T = T * z_scale_factor
 
@@ -106,6 +110,7 @@ class EssentialMatrixAnd3D:
         results.append(self.get_3d_points(points, points_prime, outlier_indices, self.intrinsics, R_2, T))
         results.append(self.get_3d_points(points, points_prime, outlier_indices, self.intrinsics, R_2, -T))
 
+        # Select combination of R and t that yielded most points in front of both frames (Part C)
         solution = sorted(results, key = lambda x: x[0], reverse=True)[0]
 
         points_3d = np.array(solution[1])
@@ -114,6 +119,7 @@ class EssentialMatrixAnd3D:
         R = solution[4]
         t = solution[5]
 
+        # Create 3D plot to show the two camera centers and all 3D points (Part D)
         fig = plt.figure()
         ax = fig.add_subplot(111, projection='3d')
         ax.set_xlabel('X axis')
@@ -126,6 +132,7 @@ class EssentialMatrixAnd3D:
         plt.legend(loc="upper right")
         plt.show()
 
+        # Project 3d points as well as corresponding features to visualize reprojection error (Part E)
         # Display initial frame reprojection error
         self.klt_tracker.cam.set(cv2.CAP_PROP_POS_FRAMES, 0)
         print('**Press escape after done viewing**')
