@@ -3,7 +3,7 @@ import cv2
 import json
 
 class OpticalFlow:
-    def __init__(self, video_src, camera_intrinsics_path):
+    def __init__(self, video_src, intrinsics):
         self.lk_params = dict( winSize  = (15, 15), 
                   maxLevel = 2, 
                   criteria = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 10, 0.03))    
@@ -19,13 +19,16 @@ class OpticalFlow:
         # Try to track features throughout all frames
         self.track_len = int(self.cam.get(cv2.CAP_PROP_FRAME_COUNT))
         self.frame_idx = 0
+        self.intrinsics = intrinsics
 
     def run(self):
+        print('**Press escape after done viewing**')
+        
         while True:
             ret, frame = self.cam.read()
 
             if ret:
-                # frame = cv2.undistort(frame, self.K, self.dist_coeff)
+                frame = cv2.undistort(frame, self.intrinsics.K, self.intrinsics.dist_coeff)
                 frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
                 vis = frame.copy()
 
@@ -70,6 +73,8 @@ class OpticalFlow:
 
         # Exclude tracks where the feature stayed in the same position for the entire duration
         self.tracks = [t for t in self.tracks if len(t) > 1]
+
+        cv2.destroyAllWindows()
 
     def anorm2(self, a):
         return (a*a).sum(-1)
